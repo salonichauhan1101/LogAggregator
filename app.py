@@ -7,25 +7,21 @@ app = Flask(__name__)
 
 # In-memory log store: { service_name: [ { "timestamp": datetime, "message": str }, ... ] }
 logs = {}
-logs_lock = threading.Lock()  # Ensuring thread-safe access to logs
+logs_lock = threading.Lock()
 
 def cleanup_logs():
     """
     Background thread that runs every minute and removes logs older than 1 hour.
     """
     while True:
-        time.sleep(60)  # Pause for 60 seconds between cleanups
+        time.sleep(60)
         cutoff = datetime.utcnow() - timedelta(hours=1)
         with logs_lock:
-            # Iterate over a copy of keys to safely remove empty lists later
             for service in list(logs.keys()):
-                # Filter logs for the current service
                 logs[service] = [log for log in logs[service] if log['timestamp'] >= cutoff]
-                # Remove the service key if no logs remain
                 if not logs[service]:
                     del logs[service]
 
-# Starting the cleanup thread as a daemon so it ends when the main program exits
 cleanup_thread = threading.Thread(target=cleanup_logs, daemon=True)
 cleanup_thread.start()
 
@@ -52,7 +48,6 @@ def ingest_log():
         return jsonify({'error': 'Missing fields in payload'}), 400
 
     try:
-        # Remove trailing 'Z' if present, then parse the timestamp as UTC time.
         if timestamp_str.endswith("Z"):
             timestamp_str = timestamp_str[:-1]
         log_time = datetime.fromisoformat(timestamp_str)
@@ -102,11 +97,8 @@ def get_logs():
 
     with logs_lock:
         service_logs = logs.get(service, [])
-        # Filter logs that fall within the provided time range
         filtered_logs = [log for log in service_logs if start_time <= log['timestamp'] <= end_time]
-        # Sort the filtered logs by timestamp to ensure correct ordering
         filtered_logs.sort(key=lambda log: log['timestamp'])
-        # Format the timestamp back to an ISO string with a trailing 'Z'
         response_logs = [
             {'timestamp': log['timestamp'].isoformat() + 'Z', 'message': log['message']}
             for log in filtered_logs
@@ -115,5 +107,4 @@ def get_logs():
     return jsonify(response_logs), 200
 
 if __name__ == '__main__':
-    # Run the Flask app on port 5000 with debug mode enabled.
     app.run(debug=True, port=5000)
