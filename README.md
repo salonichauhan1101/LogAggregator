@@ -81,9 +81,3 @@ logs = {
   ]
 }
 
-## 📁 Project Structure
-LogAggregator/
-├── app.py            # Flask app with API endpoints
-├── venv/             # Virtual environment (excluded in .gitignore)
-├── .gitignore
-└── README.md
